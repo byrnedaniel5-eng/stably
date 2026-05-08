@@ -11,17 +11,20 @@ The selection-probability threshold π is derived per-run from the r-concave tai
 Requires Python ≥ 3.10.
 
 ```bash
-# Clone or copy the package source, then from its parent directory:
-cd "Protein-level analysis"
-pip install -e ./stably
+pip install git+https://github.com/byrnedaniel5-eng/stably.git
 ```
-
-The `-e` (editable) install lets you keep tweaking the package source without reinstalling.
 
 To also install test dependencies:
 
 ```bash
-pip install -e "./stably[test]"
+pip install "stably[test] @ git+https://github.com/byrnedaniel5-eng/stably.git"
+```
+
+Or for an editable install when developing the package itself:
+
+```bash
+git clone https://github.com/byrnedaniel5-eng/stably.git
+pip install -e ./stably
 ```
 
 Verify the install:
@@ -60,7 +63,7 @@ Samples present in the pg_matrix but missing from the label file are dropped wit
 
 ## Configuration
 
-Runs are driven by a YAML config — see [config_stably.yaml](config_stably.yaml) for an annotated reference. The most important keys:
+Runs are driven by a YAML config that you supply per-analysis. The most important keys:
 
 | Key | Meaning |
 | --- | --- |
@@ -83,13 +86,13 @@ The threshold π is **not** specified directly; it is derived per-run from `(q, 
 
 ## Running on real data
 
-Use the driver script [run_stably.py](run_stably.py):
+From the directory containing your config (and data files referenced by it):
 
 ```bash
-python run_stably.py --config config_stably.yaml
+python -m stably --config config_stably.yaml
 ```
 
-The script prints class balance, q/p, B, the r-concave vs M&B threshold comparison, calibrated `C_ref`, the top-20 stable features by selection probability π̂, and writes results to `output_dir`.
+This prints class balance, q/p, B, the r-concave vs M&B threshold comparison, calibrated `C_ref`, the top-20 stable features by selection probability π̂, and writes results to `output_dir`. Relative paths in the config are resolved from the current working directory.
 
 ---
 
@@ -217,7 +220,7 @@ If the install is healthy you should see most of the first 10 injected proteins 
 
 ## Programmatic API
 
-The driver script is just a thin wrapper. The same pipeline from Python:
+The CLI is just a thin wrapper. The same pipeline from Python:
 
 ```python
 from stably import (
