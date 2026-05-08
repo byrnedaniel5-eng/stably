@@ -11,7 +11,7 @@ is rejected explicitly — see io.load_data and the package README for the
 rationale.
 """
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 from .config import Config
 from .preprocessing import Preprocessor
