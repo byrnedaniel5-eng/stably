@@ -11,7 +11,9 @@ is rejected explicitly — see io.load_data and the package README for the
 rationale.
 """
 
-__version__ = "0.4.0"
+from importlib.metadata import version as _version
+
+__version__ = _version("stably")
 
 from .config import Config
 from .preprocessing import Preprocessor

@@ -1,5 +1,9 @@
 # stably
 
+[![PyPI](https://img.shields.io/pypi/v/stably.svg)](https://pypi.org/project/stably/)
+[![Python](https://img.shields.io/pypi/pyversions/stably.svg)](https://pypi.org/project/stably/)
+[![License](https://img.shields.io/pypi/l/stably.svg)](https://github.com/byrnedaniel5-eng/stably/blob/main/LICENSE)
+
 ElasticNet stability selection with the **Shah & Samworth (2013) r-concave PFER bound**, for protein-level biomarker discovery from DIA-NN output.
 
 The selection-probability threshold π is derived per-run from the r-concave tail bound (S&S 2013, equation 8) using the data-dependent quantity θ = q/p. This is tighter than the Meinshausen & Buhlmann (2010) worst-case bound and so retains more features for the same PFER budget. The package operates on **protein-level** DIA-NN matrices (`pg_matrix`); peptide-level input is rejected explicitly.
@@ -37,7 +41,7 @@ Verify the install:
 
 ```bash
 python -c "import stably; print(stably.__version__)"
-# 0.4.0
+# 0.4.1
 ```
 
 ### Dependencies
