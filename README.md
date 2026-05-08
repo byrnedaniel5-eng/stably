@@ -174,7 +174,6 @@ cfg = {
     "max_sample_missing":      0.7,
     "max_missing":             0.0,
     "log_transform":           False,   # data is already on a log-like scale
-    "correlation_threshold":   0.95,
     "imputation_strategy":     "knn",
     "knn_neighbors":           5,
     "min_proteotypic_peptides": 2,

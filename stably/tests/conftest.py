@@ -134,7 +134,6 @@ def base_config_dict(tmp_path):
         'random_state': 0,
         'max_missing': 0.3,
         'log_transform': True,
-        'correlation_threshold': 0.95,
         'imputation_strategy': 'minimum',
         'min_proteotypic_peptides': 0,
         'knn_neighbors': 5,

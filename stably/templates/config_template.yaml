@@ -45,9 +45,6 @@ max_missing: 0.0
 # Apply log2(x+1) before z-scoring. Recommended for raw DIA-NN intensities.
 log_transform: true
 
-# Drop one of any pair of proteins correlated above this Pearson |r|.
-correlation_threshold: 0.95
-
 # Imputation strategy: "knn", "minimum", "mean", or "median".
 imputation_strategy: "knn"
 knn_neighbors: 5

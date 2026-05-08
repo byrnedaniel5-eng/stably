@@ -32,7 +32,6 @@ class Config:
         # Preprocessing parameters
         self.MAX_MISSING = config_dict['max_missing']
         self.LOG_TRANSFORM = config_dict['log_transform']
-        self.CORRELATION_THRESHOLD = config_dict['correlation_threshold']
         self.IMPUTATION_STRATEGY = config_dict['imputation_strategy']
         self.KNN_NEIGHBORS = config_dict.get('knn_neighbors', 5)
         self.MIN_PROTEOTYPIC_PEPTIDES = config_dict.get('min_proteotypic_peptides', 2)
