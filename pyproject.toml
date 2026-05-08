@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "stably"
-version = "0.3.0"
+version = "0.4.0"
 description = "ElasticNet stability selection with the Shah & Samworth (2013) r-concave PFER bound, for protein-level biomarker discovery from DIA-NN output."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -28,6 +28,9 @@ test = ["pytest>=7.4"]
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["stably*"]
+
+[tool.setuptools.package-data]
+"stably.templates" = ["*.yaml"]
 
 [tool.pytest.ini_options]
 testpaths = ["stably/tests"]

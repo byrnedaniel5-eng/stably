@@ -63,7 +63,15 @@ Samples present in the pg_matrix but missing from the label file are dropped wit
 
 ## Configuration
 
-Runs are driven by a YAML config that you supply per-analysis. The most important keys:
+Runs are driven by a YAML config that you supply per-analysis. The fastest way to start is to drop a fully-commented template into your analysis directory:
+
+```bash
+python -m stably init
+```
+
+This writes `config_stably.yaml` next to where you ran the command. Edit at minimum `data_file`, `label_file`, `case_name`, `control_name`, and `output_dir`. The template is also browsable at [examples/config_template.yaml](examples/config_template.yaml).
+
+The most important keys:
 
 | Key | Meaning |
 | --- | --- |

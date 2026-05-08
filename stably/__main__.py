@@ -6,12 +6,15 @@ derivation — the main theoretical contribution of S&S over Meinshausen &
 Buhlmann (2010).
 
 Usage:
-    python -m stably --config config_stably.yaml
+    python -m stably init                            # write a starter config
+    python -m stably --config config_stably.yaml     # run an analysis
 """
 
 import argparse
 import sys
 import warnings
+from importlib.resources import files
+from pathlib import Path
 
 import numpy as np
 
@@ -37,8 +40,43 @@ warnings.filterwarnings('ignore', category=DeprecationWarning)
 warnings.filterwarnings('ignore', category=FutureWarning)
 
 
+def init_command(argv):
+    """Write a starter config_stably.yaml into the current directory."""
+    parser = argparse.ArgumentParser(
+        prog='stably init',
+        description='Write a starter config_stably.yaml in the current directory.'
+    )
+    parser.add_argument(
+        '--output', '-o',
+        type=str,
+        default='config_stably.yaml',
+        help='Destination path (default: ./config_stably.yaml)'
+    )
+    parser.add_argument(
+        '--force', '-f',
+        action='store_true',
+        help='Overwrite if the destination already exists'
+    )
+    args = parser.parse_args(argv)
+
+    out = Path(args.output)
+    if out.exists() and not args.force:
+        print(f"Refusing to overwrite {out} (use --force to override).")
+        sys.exit(1)
+
+    template = files('stably.templates').joinpath('config_template.yaml').read_text(encoding='utf-8')
+    out.write_text(template, encoding='utf-8')
+    print(f"Wrote starter config to {out}")
+    print("Edit data_file, label_file, case/control names, and output_dir, then run:")
+    print(f"  python -m stably --config {out}")
+
+
 def main():
-    """Run the complete biomarker discovery pipeline."""
+    """Dispatch on first positional arg, else run the biomarker discovery pipeline."""
+    if len(sys.argv) > 1 and sys.argv[1] == 'init':
+        init_command(sys.argv[2:])
+        return
+
     parser = argparse.ArgumentParser(
         description='Biomarker Discovery: true S&S (2013) r-concave ElasticNet stability selection'
     )
