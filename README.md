@@ -11,13 +11,19 @@ The selection-probability threshold π is derived per-run from the r-concave tai
 Requires Python ≥ 3.10.
 
 ```bash
-pip install git+https://github.com/byrnedaniel5-eng/stably.git
+pip install stably
 ```
 
 To also install test dependencies:
 
 ```bash
-pip install "stably[test] @ git+https://github.com/byrnedaniel5-eng/stably.git"
+pip install "stably[test]"
+```
+
+To install the latest development version directly from GitHub:
+
+```bash
+pip install git+https://github.com/byrnedaniel5-eng/stably.git
 ```
 
 Or for an editable install when developing the package itself:
@@ -31,7 +37,7 @@ Verify the install:
 
 ```bash
 python -c "import stably; print(stably.__version__)"
-# 0.3.0
+# 0.4.0
 ```
 
 ### Dependencies
