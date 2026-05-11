@@ -14,16 +14,28 @@ from sklearn.exceptions import ConvergenceWarning
 from joblib import Parallel, delayed
 from typing import List, Dict, Tuple
 
+from .preprocessing import Preprocessor
 from .rconcave import compute_rconcave_threshold, print_threshold_comparison
 
 
-# Design note: C_ref is calibrated once on the FULL training set and reused
-# across every complementary-pairs subsample. This is the Shah & Samworth
-# (2013) design — regularisation is treated as a fixed hyperparameter of the
-# stability procedure, not something re-tuned per subsample. It is not a
-# cross-validation leakage bug: stability selection does not evaluate model
-# performance on held-out data; it counts how often each feature is selected
-# across subsamples at a fixed regularisation strength.
+# Design notes
+# ------------
+# 1. C_ref calibration. C_ref is calibrated once on the FULL globally-
+#    preprocessed training set (with a one-shot local stage fit) and reused
+#    across every complementary-pairs subsample. This is the Shah & Samworth
+#    (2013) design — regularisation is treated as a fixed hyperparameter of
+#    the stability procedure, not something re-tuned per subsample. It is
+#    not a cross-validation leakage bug: stability selection does not
+#    evaluate model performance on held-out data; it counts how often each
+#    feature is selected across subsamples at a fixed regularisation
+#    strength.
+# 2. Per-subsample local preprocessing. Imputation and scaling ARE refit
+#    inside each subsample. Fitting them globally would let one subsample's
+#    imputed values depend on rows in the complementary subsample, breaking
+#    the independence-across-pairs assumption the S&S bound relies on. The
+#    cohort-wide missing-value filter and per-sample log transform are
+#    applied once (globally) because they do not borrow information across
+#    rows in a way that violates the bound.
 def _find_elasticnet_C_for_q(X, y, q, random_state, l1_ratio, max_iter=1000):
     """Largest ElasticNet C (in a log-spaced sweep) that keeps <= q non-zero coefs."""
     Cs = np.logspace(-4, 2, 50)
@@ -45,20 +57,31 @@ def _find_elasticnet_C_for_q(X, y, q, random_state, l1_ratio, max_iter=1000):
 
 
 def _stability_iteration_elasticnet_path(
-    X, y, q, iteration_idx, random_seed, C_ref, l1_ratio, max_iter
+    X_global, y, q, iteration_idx, random_seed, C_ref, l1_ratio, max_iter, config
 ):
-    """Single complementary-pairs iteration. Returns (selected_features, converged)."""
+    """Single complementary-pairs iteration with per-subsample local
+    preprocessing (imputation + scaling refit on the subsample only).
+
+    ``X_global`` is expected to be the post-missing-filter, post-log matrix
+    with NaNs preserved.
+
+    Returns (selected_features, converged).
+    """
     # Complementary pairs: (2i, 2i+1) share the split seed
     splitter = StratifiedShuffleSplit(
         n_splits=1,
         train_size=0.5,
         random_state=random_seed + (iteration_idx // 2),
     )
-    train_indices, test_indices = next(splitter.split(X, y))
+    train_indices, test_indices = next(splitter.split(X_global, y))
     subsample_indices = train_indices if iteration_idx % 2 == 0 else test_indices
 
-    X_sub = X.iloc[subsample_indices]
+    X_sub_raw = X_global.iloc[subsample_indices]
     y_sub = y[subsample_indices]
+
+    # Fit a fresh local preprocessor (imputer + scaler) on this subsample.
+    sub_pp = Preprocessor(config, verbose=False)
+    X_sub = sub_pp.fit_transform_local(X_sub_raw)
 
     model = LogisticRegression(
         penalty='elasticnet',
@@ -79,7 +102,7 @@ def _stability_iteration_elasticnet_path(
     if len(nonzero_idx) == 0:
         return [], converged
     top_q_idx = nonzero_idx[np.argsort(coefs[nonzero_idx])[::-1][:q]]
-    return X.columns[top_q_idx].tolist(), converged
+    return X_sub.columns[top_q_idx].tolist(), converged
 
 
 def stability_selection_elasticnet(
@@ -87,6 +110,14 @@ def stability_selection_elasticnet(
 ) -> Tuple[List[str], float, Dict[str, float], float, dict]:
     """
     Shah & Samworth (2013) stability selection with the true r-concave bound.
+
+    ``X`` is the *globally* preprocessed feature matrix: missing-value filter
+    and (optional) log transform already applied, but imputation and scaling
+    NOT yet applied (NaNs are preserved). Imputation and scaling are refit
+    inside each complementary-pairs subsample to preserve the bound's
+    independence assumption. If ``X`` contains no NaNs (e.g. callers that
+    handled imputation upstream), the local stage simply re-scales each
+    subsample, which is harmless.
 
     Returns
     -------
@@ -122,16 +153,21 @@ def stability_selection_elasticnet(
         'B': B,
     }
 
-    # Calibrate C from the regularisation path (once, on the full data; see
-    # design note at the top of this module).
+    # Calibrate C on a full-cohort local-stage fit. This is a hyperparameter
+    # selection step (see design note 1); the per-iteration fits below use
+    # subsample-only local stages.
     print(f"    Calibrating ElasticNet regularisation from path (l1_ratio={l1_ratio})...")
-    C_ref = _find_elasticnet_C_for_q(X, y, q, config.RANDOM_STATE, l1_ratio, config.MAX_ITERATIONS)
+    cref_pp = Preprocessor(config, verbose=False)
+    X_for_cref = cref_pp.fit_transform_local(X)
+    C_ref = _find_elasticnet_C_for_q(
+        X_for_cref, y, q, config.RANDOM_STATE, l1_ratio, config.MAX_ITERATIONS
+    )
     print(f"    C_ref={C_ref:.2e}  |  r-concave threshold: π={threshold:.4f}  |  PFER≤{pfer:.1f}")
     print(f"    Running {n_iterations} complementary-pairs iterations (n_jobs={n_jobs})...")
 
     iteration_results = Parallel(n_jobs=n_jobs, verbose=0)(
         delayed(_stability_iteration_elasticnet_path)(
-            X, y, q, i, config.RANDOM_STATE, C_ref, l1_ratio, config.MAX_ITERATIONS
+            X, y, q, i, config.RANDOM_STATE, C_ref, l1_ratio, config.MAX_ITERATIONS, config
         )
         for i in range(n_iterations)
     )

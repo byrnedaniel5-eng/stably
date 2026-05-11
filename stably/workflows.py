@@ -24,10 +24,20 @@ def full_dataset_stability_elasticnet(X_raw, y, config):
     print("\nRunning true S&S ElasticNet stability selection (r-concave bound)...")
     print(f"All {X_raw.shape[0]} samples used — subsample size ≈ {X_raw.shape[0] // 2}.")
 
+    # Global stage only: missing-value filter and log transform applied to
+    # the full cohort. Imputation and scaling are deferred to per-subsample
+    # local stages inside stability_selection_elasticnet so that the S&S
+    # bound's independence assumption is preserved.
     preprocessor = Preprocessor(config, verbose=True)
-    X = preprocessor.fit_transform(X_raw, y)
+    X_global = preprocessor.fit_transform_global(X_raw, y)
 
-    p = X.shape[1]
+    # Full-cohort local stage, used only for descriptive Cohen's d on the
+    # selected features so that reported effect sizes are computed on the
+    # same imputation basis as previous runs. Not fed into the stability
+    # iterations.
+    X_full_local = preprocessor.fit_transform_local(X_global)
+
+    p = X_global.shape[1]
     k = config.MAX_CANDIDATES
     B = config.STABILITY_ITERATIONS // 2
     pfer = config.STABILITY_PFER
@@ -36,7 +46,7 @@ def full_dataset_stability_elasticnet(X_raw, y, config):
     print(f"  B = {B} complementary pairs ({config.STABILITY_ITERATIONS} subsamples)")
 
     stable_features, threshold, selection_probs, C_ref, threshold_info = (
-        stability_selection_elasticnet(X, y, config)
+        stability_selection_elasticnet(X_global, y, config)
     )
 
     threshold_info['p_after_preprocessing'] = p
@@ -47,7 +57,7 @@ def full_dataset_stability_elasticnet(X_raw, y, config):
         print("No stable features found.")
         return None
 
-    cohens_d = calculate_cohens_d(X, y, stable_features)
+    cohens_d = calculate_cohens_d(X_full_local, y, stable_features)
 
     n_case = int(np.sum(y == 1))
     n_control = int(np.sum(y == 0))
