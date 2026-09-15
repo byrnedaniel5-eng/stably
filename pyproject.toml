@@ -11,7 +11,7 @@ requires-python = ">=3.10"
 license = { file = "LICENSE" }
 authors = [{ name = "Daniel Byrne" }]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
@@ -34,6 +34,11 @@ dependencies = [
     "pyyaml>=6.0",
     "openpyxl>=3.1",
 ]
+
+[project.urls]
+Homepage = "https://github.com/byrnedaniel5-eng/stably"
+Repository = "https://github.com/byrnedaniel5-eng/stably"
+Issues = "https://github.com/byrnedaniel5-eng/stably/issues"
 
 [project.optional-dependencies]
 test = ["pytest>=7.4"]

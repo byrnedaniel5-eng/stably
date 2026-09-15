@@ -78,7 +78,9 @@ def main():
         return
 
     parser = argparse.ArgumentParser(
-        description='Biomarker Discovery: true S&S (2013) r-concave ElasticNet stability selection'
+        prog='python -m stably',
+        description='Biomarker Discovery: true S&S (2013) r-concave ElasticNet stability selection',
+        epilog='To write a starter config first, run: python -m stably init'
     )
     parser.add_argument(
         '--config',
