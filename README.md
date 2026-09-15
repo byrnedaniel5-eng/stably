@@ -41,7 +41,7 @@ Verify the install:
 
 ```bash
 python -c "import stably; print(stably.__version__)"
-# 0.4.1
+# 1.0.0
 ```
 
 ### Dependencies
@@ -171,7 +171,6 @@ cfg = {
     "group_column":            "Group",
     "sample_id_column":        "Biobank Number",
     "random_state":            42,
-    "max_sample_missing":      0.7,
     "max_missing":             0.0,
     "log_transform":           False,   # data is already on a log-like scale
     "imputation_strategy":     "knn",

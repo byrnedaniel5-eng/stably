@@ -35,11 +35,8 @@ output_dir: "stably_results"
 random_state: 42
 
 # ── Preprocessing ───────────────────────────────────────────────────────
-# Drop samples with > this fraction of missing values across proteins.
-max_sample_missing: 0.7
-
-# Drop proteins with > this fraction of missing values across samples
-# (computed AFTER the sample filter). 0.0 = require complete cases.
+# Drop proteins with > this fraction of missing values across samples.
+# 0.0 = require complete cases.
 max_missing: 0.0
 
 # Apply log2(x+1) before z-scoring. Recommended for raw DIA-NN intensities.

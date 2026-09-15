@@ -8,6 +8,7 @@ import warnings
 
 import numpy as np
 import pandas as pd
+import sklearn
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.exceptions import ConvergenceWarning
@@ -36,19 +37,50 @@ from .rconcave import compute_rconcave_threshold, print_threshold_comparison
 #    cohort-wide missing-value filter and per-sample log transform are
 #    applied once (globally) because they do not borrow information across
 #    rows in a way that violates the bound.
+
+
+def _sklearn_ge(major: int, minor: int) -> bool:
+    """True if the installed scikit-learn is at least the given version."""
+    parts = []
+    for piece in sklearn.__version__.split(".")[:2]:
+        digits = "".join(c for c in piece if c.isdigit())
+        parts.append(int(digits) if digits else 0)
+    while len(parts) < 2:
+        parts.append(0)
+    return tuple(parts) >= (major, minor)
+
+
+# scikit-learn 1.8 deprecated passing ``penalty`` to LogisticRegression and
+# infers elastic net from a float ``l1_ratio`` instead; 1.10 removes it.
+#
+# The argument cannot simply be dropped for all versions: before 1.8, omitting
+# ``penalty`` defaults to 'l2' and ``l1_ratio`` is IGNORED, which would quietly
+# turn every fit in this package into ridge regression — a silent change to the
+# selection behaviour rather than a visible failure. So it is passed only where
+# it is still required.
+_PENALTY_KWARG_REQUIRED = not _sklearn_ge(1, 8)
+
+
+def _elasticnet_logreg(C, l1_ratio, random_state, max_iter):
+    """LogisticRegression configured for elastic net, across sklearn versions."""
+    kwargs = dict(
+        C=C,
+        l1_ratio=l1_ratio,
+        solver='saga',
+        random_state=random_state,
+        max_iter=max_iter,
+    )
+    if _PENALTY_KWARG_REQUIRED:
+        kwargs['penalty'] = 'elasticnet'
+    return LogisticRegression(**kwargs)
+
+
 def _find_elasticnet_C_for_q(X, y, q, random_state, l1_ratio, max_iter=1000):
     """Largest ElasticNet C (in a log-spaced sweep) that keeps <= q non-zero coefs."""
     Cs = np.logspace(-4, 2, 50)
     C_ref = Cs[0]
     for C in Cs:
-        model = LogisticRegression(
-            penalty='elasticnet',
-            C=C,
-            l1_ratio=l1_ratio,
-            solver='saga',
-            random_state=random_state,
-            max_iter=max_iter,
-        )
+        model = _elasticnet_logreg(C, l1_ratio, random_state, max_iter)
         model.fit(X, y)
         n_nonzero = int(np.sum(model.coef_[0] != 0))
         if n_nonzero <= q:
@@ -83,13 +115,8 @@ def _stability_iteration_elasticnet_path(
     sub_pp = Preprocessor(config, verbose=False)
     X_sub = sub_pp.fit_transform_local(X_sub_raw)
 
-    model = LogisticRegression(
-        penalty='elasticnet',
-        C=C_ref,
-        l1_ratio=l1_ratio,
-        solver='saga',
-        random_state=random_seed + iteration_idx,
-        max_iter=max_iter,
+    model = _elasticnet_logreg(
+        C_ref, l1_ratio, random_seed + iteration_idx, max_iter
     )
 
     with warnings.catch_warnings(record=True) as caught:
